@@ -15,7 +15,7 @@ export default function App() {
     return (
         <div id="app">
             <div id="title">
-                <img src={`${process.env.PUBLIC_URL}/images/title-text.png`} alt="Logo" id="logo-image" />
+                <img src={`${process.env.PUBLIC_URL}/images/title-text.PNG`} alt="Logo" id="logo-image" />
             </div>
             <div id="score-tracker">
                 <div className="symbol-container" id="reactor">
