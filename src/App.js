@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRotateRight, faPlus, faMinus } from '@fortawesome/free-solid-svg-icons';
+import NoiseBackground from "./NoiseBackground";
 import './App.css';
 export default function App() {
 
@@ -10,10 +11,12 @@ export default function App() {
         shield: 0,
         damage: 0
     });
+    
     const [rotateReset, setRotateReset] = useState(false);
 
     return (
         <div id="app">
+            <NoiseBackground opacity={0.09} scale={2} />
             <div id="title">
                 <img src={`${process.env.PUBLIC_URL}/images/title-text.PNG`} alt="Logo" id="logo-image" />
             </div>
