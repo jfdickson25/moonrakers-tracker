@@ -4,9 +4,10 @@ import {
 } from "react";
 
 export default function NoiseBackground({
-    opacity = 0.08,
-    scale = 3, // bigger = chunkier noise
-    fps = 14
+    opacity = 0.07, // strength of static
+    scale = 2, // chunkiness (bigger = chunkier pixels)
+    fps = 20, // how fast the static updates
+    size = 800 // size (px) of the centered noise canvas
 }) {
     const canvasRef = useRef(null);
     const animationRef = useRef(null);
@@ -15,77 +16,95 @@ export default function NoiseBackground({
         const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");
 
+        let lastTime = 0;
+        const interval = 1000 / fps;
+
         function resize() {
-            const {
-                innerWidth,
-                innerHeight
-            } = window;
+            // Use the canvas element's display size so the gradient
+            // and noise are centered within this element.
+            const rect = canvas.getBoundingClientRect();
+            const displayWidth = rect.width || size;
+            const displayHeight = rect.height || size;
 
-            canvas.width = innerWidth / scale;
-            canvas.height = innerHeight / scale;
+            // Use a 1:1 internal resolution to keep coordinates simple
+            canvas.width = Math.max(1, Math.round(displayWidth));
+            canvas.height = Math.max(1, Math.round(displayHeight));
 
-            canvas.style.width = `${innerWidth}px`;
-            canvas.style.height = `${innerHeight}px`;
-
-            ctx.setTransform(scale, 0, 0, scale, 0, 0);
+            // Ensure CSS display size matches the desired element size
+            canvas.style.width = `${displayWidth}px`;
+            canvas.style.height = `${displayHeight}px`;
         }
 
         resize();
         window.addEventListener("resize", resize);
 
-        let lastTime = 0;
-        const interval = 1000 / fps;
-
         function drawNoise(time) {
             if (time - lastTime > interval) {
                 lastTime = time;
 
-                const {
-                    width,
-                    height
-                } = canvas;
-                const imageData = ctx.createImageData(width, height);
-                const buffer = new Uint32Array(imageData.data.buffer);
+                const { width, height } = canvas;
 
-                for (let i = 0; i < buffer.length; i++) {
-                    const shade = (Math.random() * 255) | 0;
-                    buffer[i] =
-                        (255 << 24) |
-                        (shade << 16) |
-                        (shade << 8) |
-                        shade;
+                // --- Generate chunky noise by filling rects of size `scale` ---
+                ctx.clearRect(0, 0, width, height);
+                for (let y = 0; y < height; y += scale) {
+                    for (let x = 0; x < width; x += scale) {
+                        const shade = (Math.random() * 255) | 0;
+                        ctx.fillStyle = `rgb(${shade},${shade},${shade})`;
+                        ctx.fillRect(x, y, scale, scale);
+                    }
                 }
 
-                ctx.putImageData(imageData, 0, 0);
+                // --- Circular radial fade mask (perfectly centered) ---
+                ctx.globalCompositeOperation = "destination-in";
+
+                const gradient = ctx.createRadialGradient(
+                    width / 2,
+                    height / 2,
+                    0,
+                    width / 2,
+                    height / 2,
+                    Math.min(width, height) / 2
+                );
+
+                gradient.addColorStop(0, "rgba(0,0,0,1)");
+                gradient.addColorStop(0.6, "rgba(0,0,0,0.7)");
+                gradient.addColorStop(1, "rgba(0,0,0,0)");
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(width / 2, height / 2, Math.min(width, height) / 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.closePath();
+
+                ctx.globalCompositeOperation = "source-over";
             }
 
             animationRef.current = requestAnimationFrame(drawNoise);
         }
 
-
-
-        drawNoise();
+        animationRef.current = requestAnimationFrame(drawNoise);
 
         return () => {
             cancelAnimationFrame(animationRef.current);
             window.removeEventListener("resize", resize);
         };
-    }, [scale]);
+    }, [scale, fps]);
 
-    return ( <
-        canvas ref = {
-            canvasRef
-        }
-        style = {
-            {
+    return (
+        <canvas
+            ref={canvasRef}
+            style={{
                 position: "fixed",
-                inset: 0,
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%, -50%)",
+                width: `${size}px`,
+                height: `${size}px`,
                 zIndex: -1,
                 pointerEvents: "none",
                 opacity,
-                mixBlendMode: "screen",
-            }
-        }
+                mixBlendMode: "screen"
+            }}
         />
     );
 }

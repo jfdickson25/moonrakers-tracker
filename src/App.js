@@ -16,7 +16,7 @@ export default function App() {
 
     return (
         <div id="app">
-            <NoiseBackground opacity={0.09} scale={2} />
+            <NoiseBackground opacity={0.08} scale={2} fps={20} />
             <div id="title">
                 <img src={`${process.env.PUBLIC_URL}/images/title-text.PNG`} alt="Logo" id="logo-image" />
             </div>
