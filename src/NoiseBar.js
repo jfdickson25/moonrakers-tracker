@@ -1,196 +1,181 @@
 import { useEffect, useRef } from "react";
 
 export default function NoiseBar({
-  opacity = 0.12,
-  fps = 24,
-  minDuration = 3000,
-  maxDuration = 6000,
-  minDelay = 1000,
-  maxDelay = 5000,
-  minWidth = 80,
-  maxWidth = 240,
-  height = 30
+    opacity = 0.15,
+    scale = 3,
+    fps = 20,
+    minDuration = 2000,
+    maxDuration = 6000,
+    minDelay = 1000,
+    maxDelay = 5000,
+    minWidth = 100,
+    maxWidth = 200,
+    height = 20
 }) {
-  const canvasRef = useRef(null);
-  const animationRef = useRef(null);
+    const canvasRef = useRef(null);
+    const animationRef = useRef(null);
+    const barStateRef = useRef({
+        isActive: false,
+        startTime: 0,
+        duration: 0,
+        fromLeft: true,
+        lastFrameTime: 0,
+        yPos: 0,
+        barWidth: 0,
+        nextStartTime: null
+    });
 
-  const stateRef = useRef({
-    isActive: false,
-    startTime: 0,
-    duration: 0,
-    fromLeft: true,
-    lastFrameTime: 0,
-    yPos: 0,
-    barWidth: 0,
-    nextStartTime: null
-  });
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        const state = barStateRef.current;
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const state = stateRef.current;
+        const isMobile =
+            typeof navigator !== "undefined" &&
+            /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+        const effectiveFps = fps;
+        const interval = 1000 / effectiveFps;
 
-    function resize() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
+        const capDpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2);
 
-    resize();
-    window.addEventListener("resize", resize);
+        // offscreen canvas for compact noise texture per bar
+        const offCanvas = document.createElement("canvas");
+        const offCtx = offCanvas.getContext("2d");
 
-    const rand = (min, max) => Math.random() * (max - min) + min;
-
-    function drawFrame(time) {
-      if (time - state.lastFrameTime < 1000 / fps) {
-        animationRef.current = requestAnimationFrame(drawFrame);
-        return;
-      }
-
-      state.lastFrameTime = time;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Handle activation timing
-      if (!state.isActive) {
-        if (!state.nextStartTime) {
-          state.nextStartTime = time + rand(minDelay, maxDelay);
+        function resize() {
+            canvas.width = Math.max(1, Math.round(window.innerWidth * capDpr));
+            canvas.height = Math.max(1, Math.round(window.innerHeight * capDpr));
+            canvas.style.width = "100vw";
+            canvas.style.height = "100vh";
+            // draw in CSS pixels by scaling context
+            ctx.setTransform(capDpr, 0, 0, capDpr, 0, 0);
         }
 
-        if (time >= state.nextStartTime) {
-          state.isActive = true;
-          state.startTime = time;
-          state.duration = rand(minDuration, maxDuration);
-          state.fromLeft = Math.random() > 0.5;
-          state.yPos = Math.random() * (canvas.height - height);
-          state.barWidth = rand(minWidth, maxWidth);
-          state.nextStartTime = null;
+        resize();
+        window.addEventListener("resize", resize);
+
+        function getRandomDuration() {
+            return Math.random() * (maxDuration - minDuration) + minDuration;
         }
-      }
 
-      if (state.isActive) {
-        const elapsed = time - state.startTime;
-        let progress = Math.min(elapsed / state.duration, 1);
+        function getRandomDelay() {
+            return Math.random() * (maxDelay - minDelay) + minDelay;
+        }
 
-        // Smooth ease in/out
-        progress =
-          progress < 0.5
-            ? 2 * progress * progress
-            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+        function getRandomWidth() {
+            return Math.random() * (maxWidth - minWidth) + minWidth;
+        }
 
-        if (elapsed >= state.duration) {
-          state.isActive = false;
-        } else {
-          const xPos = state.fromLeft
-            ? progress * (canvas.width + state.barWidth) - state.barWidth
-            : canvas.width - progress * (canvas.width + state.barWidth);
-
-          ctx.save();
-
-          // Clip drawing to bar region
-          ctx.beginPath();
-          ctx.rect(xPos, state.yPos, state.barWidth, height);
-          ctx.clip();
-
-          ctx.globalCompositeOperation = "lighter";
-
-          // More transparency
-          ctx.globalAlpha = 0.35;
-
-          // Softer glow
-          ctx.shadowColor = "rgba(80,180,255,0.4)";
-          ctx.shadowBlur = 18;
-
-          // Higher density noise
-          for (let y = state.yPos; y < state.yPos + height; y += 2) {
-            for (
-              let x = Math.max(0, xPos);
-              x < Math.min(canvas.width, xPos + state.barWidth);
-              x += 2
-            ) {
-              const intensity = Math.random();
-
-              const r = 30 + intensity * 50;
-              const g = 130 + intensity * 90;
-              const b = 210 + intensity * 60;
-
-              ctx.fillStyle = `rgb(${r},${g},${b})`;
-              ctx.fillRect(x, y, 2, 2);
+        function ensureOffCanvas(barW, barH) {
+            const downscale = isMobile ? 3 : 2;
+            const w = Math.max(1, Math.round(barW / downscale));
+            const h = Math.max(1, Math.round(barH / downscale));
+            if (offCanvas.width !== w || offCanvas.height !== h) {
+                offCanvas.width = w;
+                offCanvas.height = h;
             }
-          }
-
-          ctx.shadowBlur = 0;
-
-          // --- Horizontal Fade ---
-          ctx.globalCompositeOperation = "destination-in";
-
-          const horizontalFade = ctx.createLinearGradient(
-            xPos,
-            0,
-            xPos + state.barWidth,
-            0
-          );
-
-          horizontalFade.addColorStop(0, "rgba(0,0,0,0)");
-          horizontalFade.addColorStop(0.15, "rgba(0,0,0,1)");
-          horizontalFade.addColorStop(0.85, "rgba(0,0,0,1)");
-          horizontalFade.addColorStop(1, "rgba(0,0,0,0)");
-
-          ctx.fillStyle = horizontalFade;
-          ctx.fillRect(xPos, state.yPos, state.barWidth, height);
-
-          // --- Vertical Fade ---
-          const verticalFade = ctx.createLinearGradient(
-            0,
-            state.yPos,
-            0,
-            state.yPos + height
-          );
-
-          verticalFade.addColorStop(0, "rgba(0,0,0,0)");
-          verticalFade.addColorStop(0.2, "rgba(0,0,0,1)");
-          verticalFade.addColorStop(0.8, "rgba(0,0,0,1)");
-          verticalFade.addColorStop(1, "rgba(0,0,0,0)");
-
-          ctx.fillStyle = verticalFade;
-          ctx.fillRect(xPos, state.yPos, state.barWidth, height);
-
-          ctx.restore();
+            return { w, h, downscale };
         }
-      }
 
-      animationRef.current = requestAnimationFrame(drawFrame);
-    }
+        function drawOffscreenNoise(w, h) {
+            offCtx.clearRect(0, 0, w, h);
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const shade = (Math.random() * 255) | 0;
+                    offCtx.fillStyle = `rgb(${shade},${shade},${shade})`;
+                    offCtx.fillRect(x, y, 1, 1);
+                }
+            }
+        }
 
-    animationRef.current = requestAnimationFrame(drawFrame);
+        function draw(time) {
+            if (time - state.lastFrameTime > interval) {
+                state.lastFrameTime = time;
 
-    return () => {
-      cancelAnimationFrame(animationRef.current);
-      window.removeEventListener("resize", resize);
-    };
-  }, [
-    fps,
-    minDuration,
-    maxDuration,
-    minDelay,
-    maxDelay,
-    minWidth,
-    maxWidth,
-    height
-  ]);
+                // clear using CSS pixels
+                ctx.clearRect(0, 0, canvas.width / capDpr, canvas.height / capDpr);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        zIndex: -1,
-        pointerEvents: "none",
-        opacity,
-        mixBlendMode: "screen"
-      }}
-    />
-  );
+                if (!state.isActive) {
+                    if (!state.nextStartTime) state.nextStartTime = time + getRandomDelay();
+                    if (time >= state.nextStartTime) {
+                        state.isActive = true;
+                        state.startTime = time;
+                        state.duration = getRandomDuration();
+                        state.fromLeft = Math.random() > 0.5;
+                        state.yPos = Math.random() * (window.innerHeight - height);
+                        state.barWidth = getRandomWidth();
+                        state.nextStartTime = null;
+                    }
+                }
+
+                if (state.isActive) {
+                    const elapsed = time - state.startTime;
+                    const progress = Math.min(elapsed / state.duration, 1);
+
+                    if (progress >= 1) {
+                        state.isActive = false;
+                    } else {
+                        const xPos = state.fromLeft
+                            ? progress * (window.innerWidth + state.barWidth) - state.barWidth
+                            : window.innerWidth - progress * (window.innerWidth + state.barWidth);
+
+                        const { w, h } = ensureOffCanvas(state.barWidth, height);
+                        drawOffscreenNoise(w, h);
+
+                        ctx.imageSmoothingEnabled = false;
+                        ctx.drawImage(offCanvas, 0, 0, w, h, Math.max(-state.barWidth, xPos), state.yPos, state.barWidth, height);
+
+                        ctx.globalCompositeOperation = "destination-in";
+
+                        // horizontal fade
+                        const horizGrad = ctx.createLinearGradient(xPos, 0, xPos + state.barWidth, 0);
+                        horizGrad.addColorStop(0, "rgba(0,0,0,0)");
+                        horizGrad.addColorStop(0.15, "rgba(0,0,0,0.7)");
+                        horizGrad.addColorStop(0.85, "rgba(0,0,0,0.7)");
+                        horizGrad.addColorStop(1, "rgba(0,0,0,0)");
+                        ctx.fillStyle = horizGrad;
+                        ctx.fillRect(xPos, state.yPos, state.barWidth, height);
+
+                        // vertical fade
+                        const vertGrad = ctx.createLinearGradient(0, state.yPos, 0, state.yPos + height);
+                        vertGrad.addColorStop(0, "rgba(0,0,0,0)");
+                        vertGrad.addColorStop(0.12, "rgba(0,0,0,0.7)");
+                        vertGrad.addColorStop(0.88, "rgba(0,0,0,0.7)");
+                        vertGrad.addColorStop(1, "rgba(0,0,0,0)");
+                        ctx.fillStyle = vertGrad;
+                        ctx.fillRect(xPos, state.yPos, state.barWidth, height);
+
+                        ctx.globalCompositeOperation = "source-over";
+                    }
+                }
+            }
+
+            animationRef.current = requestAnimationFrame(draw);
+        }
+
+        animationRef.current = requestAnimationFrame(draw);
+
+        return () => {
+            cancelAnimationFrame(animationRef.current);
+            window.removeEventListener("resize", resize);
+        };
+    }, [scale, fps, minDuration, maxDuration, minDelay, maxDelay, minWidth, maxWidth, height]);
+
+    return (
+        <canvas
+            ref={canvasRef}
+            style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                width: "100vw",
+                height: "100vh",
+                zIndex: -1,
+                pointerEvents: "none",
+                opacity,
+                mixBlendMode: "screen"
+            }}
+        />
+    );
 }
