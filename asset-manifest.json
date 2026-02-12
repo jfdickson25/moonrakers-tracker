@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/moonrakers-tracker/static/css/main.430c4159.css",
-    "main.js": "/moonrakers-tracker/static/js/main.a3497143.js",
+    "main.js": "/moonrakers-tracker/static/js/main.c25b5709.js",
     "index.html": "/moonrakers-tracker/index.html",
     "main.430c4159.css.map": "/moonrakers-tracker/static/css/main.430c4159.css.map",
-    "main.a3497143.js.map": "/moonrakers-tracker/static/js/main.a3497143.js.map"
+    "main.c25b5709.js.map": "/moonrakers-tracker/static/js/main.c25b5709.js.map"
   },
   "entrypoints": [
     "static/css/main.430c4159.css",
-    "static/js/main.a3497143.js"
+    "static/js/main.c25b5709.js"
   ]
 }
