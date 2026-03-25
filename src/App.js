@@ -41,14 +41,6 @@ export default function App() {
                         <FontAwesomeIcon icon={faPlus} className="score-button" style={{ fontSize: '21px', color: '#999' }} onClick={() => setScore({ ...score, thruster: score.thruster + 1 })} />
                     </div>
                 </div>
-                <div className= "symbol-container" id="crew">
-                    <img src={`${process.env.PUBLIC_URL}/images/crew.png`} alt="Symbol" className="symbol crew" />
-                    <div className="score-item">
-                        <FontAwesomeIcon icon={faMinus} className="score-button" style={{ fontSize: '21px', color: '#999' }} onClick={() => setScore({ ...score, crew: Math.max(0, (score.crew || 0) - 1) })} />
-                        <span id="crew-score" className="score-value" style={ (score.crew === 0 || score.crew === undefined) ? { opacity: 0.3 } : null }>{score.crew || 0}</span>
-                        <FontAwesomeIcon icon={faPlus} className="score-button" style={{ fontSize: '21px', color: '#999' }} onClick={() => setScore({ ...score, crew: (score.crew || 0) + 1 })} />
-                    </div>
-                </div>
                 <div className="symbol-container" id="shield">
                     <img src={`${process.env.PUBLIC_URL}/images/shield.png`} alt="Symbol" className="symbol shield" />
                     <div className="score-item">
@@ -63,6 +55,14 @@ export default function App() {
                         <FontAwesomeIcon icon={faMinus} className="score-button" style={{ fontSize: '21px', color: '#999' }} onClick={() => setScore({ ...score, damage: Math.max(0, score.damage - 1) })} />
                         <span id="damage-score" className="score-value" style={ score.damage === 0 ? { opacity: 0.3 } : null }>{score.damage}</span>
                         <FontAwesomeIcon icon={faPlus} className="score-button" style={{ fontSize: '21px', color: '#999' }} onClick={() => setScore({ ...score, damage: score.damage + 1 })} />
+                    </div>
+                </div>
+                <div className= "symbol-container" id="crew">
+                    <img src={`${process.env.PUBLIC_URL}/images/crew.png`} alt="Symbol" className="symbol crew" />
+                    <div className="score-item">
+                        <FontAwesomeIcon icon={faMinus} className="score-button" style={{ fontSize: '21px', color: '#999' }} onClick={() => setScore({ ...score, crew: Math.max(0, (score.crew || 0) - 1) })} />
+                        <span id="crew-score" className="score-value" style={ (score.crew === 0 || score.crew === undefined) ? { opacity: 0.3 } : null }>{score.crew || 0}</span>
+                        <FontAwesomeIcon icon={faPlus} className="score-button" style={{ fontSize: '21px', color: '#999' }} onClick={() => setScore({ ...score, crew: (score.crew || 0) + 1 })} />
                     </div>
                 </div>
             </div>
