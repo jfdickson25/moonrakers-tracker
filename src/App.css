@@ -79,7 +79,7 @@ body {
 }
 
 .symbol {
-    height: 120px;
+    height: 100px;
     animation: moveUpDown 3s ease-in-out infinite;
 }
 
@@ -145,6 +145,14 @@ body {
 
 #damage-score {
     color: #F07D3C;
+}
+
+#crew-score {
+    color: #BE7FC9;
+}
+
+#crew {
+    grid-column: span 2;
 }
 
 
